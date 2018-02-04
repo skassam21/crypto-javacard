@@ -1,2 +1,5 @@
 .idea/
 HelloWorld.cap
+
+*.iml
+target
