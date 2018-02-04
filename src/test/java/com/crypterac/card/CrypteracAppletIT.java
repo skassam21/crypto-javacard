@@ -1,44 +1,44 @@
 package com.crypterac.card;
 
-import com.licel.jcardsim.smartcardio.CardSimulator;
-import com.licel.jcardsim.utils.AIDUtil;
-import javacard.framework.AID;
-import javacard.framework.ISO7816;
 import junit.framework.TestCase;
 import org.bouncycastle.util.encoders.Hex;
 
-import javax.smartcardio.CommandAPDU;
-import javax.smartcardio.ResponseAPDU;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 
 public class CrypteracAppletIT extends TestCase {
 
-    private static final String TEST_APPLET_AID = "010203040506070809";
+    public void testSelect() throws IOException {
+        String output = executeCommand("java -cp lib/jcardsim-2.2.2-all.jar:target/crypterac-1.0.0-SNAPSHOT.jar" +
+                " com.licel.jcardsim.utils.APDUScriptTool jcardsim.cfg public_address.script \n");
 
-    protected void setUp() throws Exception {
-        super.setUp();
+        String[] arr = output.split("Le:");
+        output = arr[arr.length - 1].split("SW1:")[0].replace(", ", "").substring(3);
+        // Check if the public address is correct
+        assertEquals(new String(Hex.decode(output)), new String(CrypteracApplet.PUBLIC_KEY));
     }
 
-    @Override
-    protected void tearDown() throws Exception {
-        System.clearProperty("com.licel.jcardsim.card.applet.0.AID");
-        System.clearProperty("com.licel.jcardsim.card.applet.0.Class");
-    }
+    private String executeCommand(String command) {
+        StringBuffer output = new StringBuffer();
 
-    public void testSelect() {
-        CardSimulator simulator = new CardSimulator();
+        Process p;
+        try {
+            p = Runtime.getRuntime().exec(command);
+            p.waitFor();
+            BufferedReader reader =
+                    new BufferedReader(new InputStreamReader(p.getInputStream()));
 
-        AID appletAID = AIDUtil.create(TEST_APPLET_AID);
-        simulator.installApplet(appletAID, CrypteracApplet.class);
+            String line;
+            while ((line = reader.readLine())!= null) {
+                output.append(line + "\n");
+            }
 
-        // 3. select applet
-        simulator.selectApplet(appletAID);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
-        // 4. send select APDU
-        CommandAPDU selectApplet = new CommandAPDU(ISO7816.CLA_ISO7816, ISO7816.INS_SELECT, 4, 0,
-                Hex.decode(TEST_APPLET_AID));
-        ResponseAPDU response = simulator.transmitCommand(selectApplet);
+        return output.toString();
 
-        // 5. check response
-        assertEquals(0x9000, response.getSW());
     }
 }
