@@ -32,6 +32,9 @@ repositories {
 }
 
 dependencies {
+  testCompile("org.projectlombok:lombok:1.16.20")
+  testCompile('com.sun.jersey:jersey-client:1.17.1')
+  testCompile('com.sun.jersey:jersey-json:1.17.1')
   testCompile(files("./lib/jcardsim-3.0.5.jar"))
   testCompile('org.web3j:core:2.3.1')
   testCompile('org.bitcoinj:bitcoinj-core:0.14.5')
@@ -55,6 +58,10 @@ task wrapper(type: Wrapper) {
   gradleVersion = '2.10'
 }
 
+task delete(type: Exec) {
+  commandLine 'java', '-jar', 'lib/gp/gp.jar', '--delete', '-default'
+}
+
 task install(type: Exec) {
   commandLine 'java', '-jar', 'lib/gp/gp.jar', '--delete', '-default'
   commandLine 'java', '-jar', 'lib/gp/gp.jar', '-install', './build/javacard/com/crypterac/card/javacard/card.cap', '-default'
@@ -62,6 +69,7 @@ task install(type: Exec) {
 
 if (project.properties['com.crypterac.card.test.simulated'] != 'true') {
   tasks.install.dependsOn(convertJavacard)
+  tasks.install.dependsOn(delete)
   tasks.test.dependsOn(install)
 }
 
