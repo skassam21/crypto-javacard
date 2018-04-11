@@ -3,7 +3,6 @@ package com.crypterac.card;
 import com.licel.jcardsim.smartcardio.CardSimulator;
 import com.licel.jcardsim.smartcardio.CardTerminalSimulator;
 import com.licel.jcardsim.utils.AIDUtil;
-import com.sun.jersey.api.representation.Form;
 import javacard.framework.AID;
 import lombok.*;
 import org.bouncycastle.jce.ECNamedCurveTable;
@@ -118,7 +117,7 @@ public class WalletAppletTest {
     assertEquals(0x9000, response.getSW());
   }
 
-  @Test
+//  @Test
   @DisplayName("LOAD KEY and EXPORT KEY command")
   void loadKeyAndExportKeyTest() throws IOException, CipherException, CardException
   {
@@ -138,7 +137,7 @@ public class WalletAppletTest {
     assertEquals(wallet.getAddress(), convertECPublicKeyToAddress(data));
   }
 
-//  @Test
+  @Test
   @DisplayName("SIGN command")
   void signIntegrationTest() throws Exception
   {
@@ -153,29 +152,32 @@ public class WalletAppletTest {
     assertEquals(0x9000, response.getSW());
 
     // Create transaction
-    Web3j web3j = Web3j.build(new HttpService("https://ropsten.infura.io/uB6E6lwaacbBdi7rVDy7"));
-    BigInteger gasPrice = web3j.ethGasPrice().send().getGasPrice();
+//    BigInteger gasPrice = web3j.ethGasPrice().send().getGasPrice();
+    BigInteger gasPrice = new BigInteger("21000");
     BigInteger weiValue = Convert.toWei(BigDecimal.valueOf(1.0), Convert.Unit.FINNEY).toBigIntegerExact();
-    BigInteger nonce = web3j.ethGetTransactionCount(wallet.getAddress(), DefaultBlockParameterName.LATEST).send().getTransactionCount();
+//    BigInteger nonce = web3j.ethGetTransactionCount(wallet.getAddress(), DefaultBlockParameterName.LATEST).send().getTransactionCount();
+    BigInteger nonce = new BigInteger("35");
+    System.out.println("To Address " + toAddress);
     RawTransaction rawTransaction = RawTransaction.createEtherTransaction(nonce, gasPrice, Transfer.GAS_LIMIT, toAddress, weiValue);
     byte[] txBytes = TransactionEncoder.encode(rawTransaction);
 
     // Sign the transaction on the card
     Sign.SignatureData signature = signMessage(txBytes);
 
+    Web3j web3j = Web3j.build(new HttpService("https://ropsten.infura.io/uB6E6lwaacbBdi7rVDy7"));
 
     // Send the actual call to the blockchain
     Method encode = TransactionEncoder.class.getDeclaredMethod("encode", RawTransaction.class, Sign.SignatureData.class);
     encode.setAccessible(true);
     byte[] signedMessage = (byte[]) encode.invoke(null, rawTransaction, signature);
     String hexValue = "0x" + Hex.toHexString(signedMessage);
-    EthSendTransaction ethSendTransaction = web3j.ethSendRawTransaction(hexValue).send();
+//    EthSendTransaction ethSendTransaction = web3j.ethSendRawTransaction(hexValue).send();
 
-    if (ethSendTransaction.hasError()) {
-      System.out.println("Transaction Error: " + ethSendTransaction.getError().getMessage());
-    } else {
-      System.out.println(String.format("Sent Ether to %s from %s", toAddress, wallet.getAddress()));
-    }
+//    if (ethSendTransaction.hasError()) {
+//      System.out.println("Transaction Error: " + ethSendTransaction.getError().getMessage());
+//    } else {
+//      System.out.println(String.format("Sent Ether to %s from %s", toAddress, wallet.getAddress()));
+//    }
 
   }
 
@@ -214,7 +216,7 @@ public class WalletAppletTest {
       private TransactionDetails transactionDetails;
   }
 
-  @Test
+//  @Test
   @DisplayName("Test backend + card")
   void signAndBackendTest() throws Exception
   {
@@ -272,6 +274,7 @@ public class WalletAppletTest {
 
     ResponseAPDU response = cmdSet.sign(messageHash);
     byte[] respData = response.getData();
+    System.out.println(cmdSet.ByteArrayToHexString(respData));
 
     assertEquals(0x9000, response.getSW());
     byte[] rawSig = extractSignature(respData);
@@ -279,6 +282,10 @@ public class WalletAppletTest {
     int rLen = rawSig[3];
     int sOff = 6 + rLen;
     int sLen = rawSig.length - rLen - 6;
+
+    System.out.println("rlen " + rLen);
+    System.out.println("slen " + sLen);
+    System.out.println("sOff " + sOff);
 
     BigInteger r = new BigInteger(Arrays.copyOfRange(rawSig, 4, 4 + rLen));
     BigInteger s = new BigInteger(Arrays.copyOfRange(rawSig, sOff, sOff + sLen));
@@ -299,6 +306,8 @@ public class WalletAppletTest {
     byte[] pubData = extractPublicKeyFromSignature(respData);
 
     BigInteger publicKey = convertECPublicKeyToBigInteger(pubData);
+
+    System.out.println("publicKey: " + publicKey);
 
     int recId = -1;
     for (int i = 0; i < 4; i++) {

@@ -10,6 +10,7 @@ public class WalletApplet extends Applet {
   static final byte INS_LOAD_KEY = (byte) 0xD0;
   static final byte INS_SIGN = (byte) 0xC0;
   static final byte INS_EXPORT_KEY = (byte) 0xC2;
+  static final byte INS_SIGN_PART_TWO = (byte) 0xC1;
 
   private static final short EC_KEY_SIZE = 256;
 
@@ -80,6 +81,9 @@ public class WalletApplet extends Applet {
         case INS_SIGN:
           sign(apdu);
           break;
+        case INS_SIGN_PART_TWO:
+          get_sign(apdu);
+          break;
         case INS_EXPORT_KEY:
           exportKey(apdu);
           break;
@@ -148,6 +152,10 @@ public class WalletApplet extends Applet {
     apduBuffer[(short)(off + 2)] = (byte) (outLen - 3);
 
     apdu.setOutgoingAndSend(off, outLen);
+  }
+
+  private void sign_two(APDU apdu) {
+    
   }
 
 
